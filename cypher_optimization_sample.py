@@ -1060,6 +1060,26 @@ def run_query_list_on_tx_with_apoc(tx, queries):
     print(f"Executing queries with APOC took {end_time - start_time} seconds")
     return result
 
+'''
+second approach using a peroidic iteraite
+'''
+def run_query_list_on_tx_with_periodic(tx, queries):
+    start_time = time.time()
+    
+    periodic_query = """
+    CALL apoc.periodic.iterate(
+      "UNWIND $queries AS query RETURN query",
+      "CALL apoc.cypher.run(query, {}) YIELD value RETURN value",
+      {batchSize: 100}
+    ) YIELD batches, total
+    RETURN batches, total
+    """
+    result = tx.run(periodic_query, queries=queries)
+    
+    end_time = time.time()
+    print(f"Executing queries with `apoc.periodic.iterate` took {end_time - start_time} seconds")
+    return result
+
 
 '''
 function to create nodes for now the nodes is going to be 300 nodes
@@ -1096,14 +1116,16 @@ def create_nodes(driver, nodes):
         session.execute_write(run_query_list_on_tx_with_apoc, query_list)
     print("DONE SIR")    
         
-# def run_query(driver, db_name):
-#     with driver.session(database=db_name) as session:
-#         result = session.run("MATCH (n) RETURN n LIMIT 5")
-#         for record in result:
-#             print(record)
+def run_query(driver, db_name):
+    with driver.session(database=db_name) as session:
+        result = session.run("MATCH (n) RETURN n LIMIT 5")
+        for record in result:
+            print(record)
 
 if __name__ == "__main__":
     driver = connect_to_driver(uri, user_name, password)
     # create_user_database(driver, user_name, db_name)
     # run_query(driver, db_name)
     create_nodes(driver, nodes)
+    # with driver.session(database="cypheropti") as session:
+    #     session.run("CREATE (n:GENRE {name: 'TestGenre'}) RETURN n")
